@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+ namespace: 名称空间
+ id: 唯一标识
+-->
+<mapper namespace="com.meituan.mybatis.bean.EmployeeMapper">
+    <select id="selectEmployee" resultType="com.meituan.mybatis.bean.Employee">
+        select * from employee where id = #{id}
+    </select>
+</mapper>
