@@ -1,5 +1,6 @@
 package com.meituan.mybatis;
 
+import com.meituan.mybatis.bean.Employee;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -32,7 +33,9 @@ public class MybatisTest {
 
         //2. 获取SqlSession实例，能直接执行已经映射的sql语句
         SqlSession sqlSession = sqlSessionFactory.openSession();
-        
-        
+
+        Employee employee = sqlSession.selectOne("com.meituan.mybatis.bean.EmployeeMapper.selectEmp", 1);
+        System.out.println(employee);
+
     }
 }

@@ -5,9 +5,11 @@
 <!--
  namespace: 名称空间
  id: 唯一标识
+ returnType: 返回值类型
+ #{id} 从传递过来的参数中取出id值
 -->
 <mapper namespace="com.meituan.mybatis.bean.EmployeeMapper">
-    <select id="selectEmployee" resultType="com.meituan.mybatis.bean.Employee">
+    <select id="selectEmp" resultType="com.meituan.mybatis.bean.Employee">
         select * from employee where id = #{id}
     </select>
 </mapper>
