@@ -205,3 +205,5 @@ public interface EmployeeMapper {
 
    sql映射文件：保存了每一个sql语句的映射信息
 
+# 2. Mybatis全局配置文件
+
