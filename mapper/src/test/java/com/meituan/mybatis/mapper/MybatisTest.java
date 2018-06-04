@@ -2,6 +2,7 @@ package com.meituan.mybatis.mapper;
 
 import com.meituan.mybatis.mapper.bean.Employee;
 import com.meituan.mybatis.mapper.dao.EmployeeMapper;
+import com.meituan.mybatis.mapper.dao.EmployeeMapperPlus;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
@@ -58,7 +59,7 @@ public class MybatisTest {
         SqlSession sqlSession = sqlSessionFactory.openSession();
         try {
             EmployeeMapper mapper = sqlSession.getMapper(EmployeeMapper.class);
-            Employee employee = new Employee(null, "jerry", "jerry@tom.com", "2");
+            Employee employee = new Employee(null, "jerry", "jerry@tom.com", "2", null);
             System.out.println(employee);
             System.out.println("============");
             mapper.addEmp(employee);
@@ -112,6 +113,22 @@ public class MybatisTest {
         System.out.println(map);
     }
 
+
+    @Test
+    public void test06() throws Exception {
+        SqlSessionFactory sqlSessionFactory = getSqlSessionFactory();
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+
+        try {
+            EmployeeMapperPlus mapper = sqlSession.getMapper(EmployeeMapperPlus.class);
+            Employee empById = mapper.getEmpAndDept(1);
+            System.out.println(empById);
+        } finally {
+            sqlSession.close();
+        }
+    }
+    
+    
     private SqlSessionFactory getSqlSessionFactory() throws Exception{
         String resources = "mybatis-config.xml";
         InputStream is = Resources.getResourceAsStream(resources);

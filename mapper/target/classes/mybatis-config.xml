@@ -91,6 +91,7 @@
     -->
     <mappers>
         <mapper resource="mapper/employee-mapper.xml"/>
+        <mapper resource="mapper/employee-plus-mapper.xml"/>
     </mappers>
     
     <!--

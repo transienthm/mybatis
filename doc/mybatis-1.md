@@ -650,3 +650,71 @@ jdbcType参演需要在某种特定的条件下被设置
 public Map<Integer, Employee> getEmpByLastNameLikeReturnMap(String lastName);
 ```
 
+## 3.7 自定义结果映射封装规则
+
+`resultMap` 元素是 MyBatis 中最重要最强大的元素。它可以让你从 90% 的 JDBC `ResultSets` 数据提取代码中解放出来, 并在一些情形下允许你做一些 JDBC 不支持的事情。 实际上，在对复杂语句进行联合映射的时候，它很可能可以代替数千行的同等功能的代码。 ResultMap 的设计思想是，简单的语句不需要明确的结果映射，而复杂一点的语句只需要描述它们的关系就行了。 
+
+```xml
+    <resultMap id="myEmp" type="com.meituan.mybatis.mapper.bean.Employee">
+        <!--column指定哪一列， property指定对应JavaBean属性
+            id：指定主键列的封装规则，会在底层优化规则
+        -->
+        <id column="id" property="id"/>
+        <!--定义普通列的封装规则-->
+        <result column="last_name" property="lastName"/>
+        <!--其他不指定的列会自动封装，推荐只要写resultMap，就将全列的映射规则都写上-->
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+    </resultMap>
+    
+    <select id="getEmpById" resultMap="myEmp">
+        SELECT *
+        FROM employee
+        WHERE id = #{id}
+    </select>
+```
+
+## 3.8 关联查询
+
+第一种resultMap的写法：
+
+```xml
+<!--
+        场景一：
+            查询Employee的同时查询员工所在的部门
+    -->
+    <resultMap id="myDifEmp" type="com.meituan.mybatis.mapper.bean.Employee">
+        <id column="id" property="id" />
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <result column="did" property="dept.id"/>
+        <result column="dept_name" property="dept.departmentName"/>
+    </resultMap>
+    <select id="getEmpAndDept" resultMap="myDifEmp">
+        SELECT e.id id, e.last_name lastName, e.email email, e.gender gender, e.d_id d_id, d.id did , d.dept_name dept_name from employee e, department d 
+        WHERE e.d_id = d.id AND e.id=#{id}
+    </select>
+```
+
+第二种resultMap的写法
+
+```xml
+    <resultMap id="myDifEmp2" type="com.meituan.mybatis.mapper.bean.Employee">
+        <id column="id" property="id" />
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <!--
+        association可以指定联合的JavaBean对象
+            property ="dept" 指定哪个属性是联合的对象
+            javaType：指定这个属性对象的类型
+        -->
+
+        <association property="dept" javaType="com.meituan.mybatis.mapper.bean.Department">
+            <id column="did" property="id"/>
+            <result column="dept_name" property="departmentName"/>
+        </association>
+    </resultMap>
+```
+
