@@ -371,3 +371,282 @@ public interface EmployeeMapper {
 # 3.Mybatis映射文件 
 
 MyBatis 的真正强大在于它的映射语句，也是它的魔力所在。由于它的异常强大，映射器的 XML 文件就显得相对简单。如果拿它跟具有相同功能的 JDBC 代码进行对比，你会立即发现省掉了将近 95% 的代码。MyBatis 就是针对 SQL 构建的，并且比普通的方法做的更好。 
+
+## 3.1 获取自增主键
+
+```
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+ namespace: 名称空间
+ id: 唯一标识
+ returnType: 返回值类型
+ #{id} 从传递过来的参数中取出id值
+-->
+<mapper namespace="com.meituan.mybatis.mapper.dao.EmployeeMapper">
+    <select id="getEmpById" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT *
+        FROM employee
+        WHERE id = #{id}
+    </select>
+
+    <!--parameterType：可以省略
+        mysql支持自增主键，自增主键的获取，mybatis也是利用statement.getGeneratedKeys(),
+        useGeneratedKeys="true"：使用自增主键获取主键值策略
+        keyProperty：指定对应的主键属性，也就是mybatis获取到主键值以后，将这个值封装给JavaBean的哪个属性
+    -->
+    <insert id="addEmp" parameterType="com.meituan.mybatis.mapper.bean.Employee"
+        useGeneratedKeys="true" keyProperty="id"
+    >
+        INSERT INTO employee (last_name, email, gender)
+        VALUES (#{lastName}, #{email}, #{gender})
+    </insert>
+
+    <update id="updateEmp">
+        UPDATE employee
+        SET last_name = #{lastName}, email = #{email}, gender = #{gender}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteEmpById">
+        DELETE FROM employee WHERE id=#{id}
+    </delete>
+</mapper>
+```
+
+单元测试
+
+```java
+ /**
+     * 1. mybatis允许增删改直接定义以下类型返回值
+     *      Integer Long Boolean
+     *  2. 手动提交数据
+     * @throws Exception
+     */
+    @Test
+    public void test02() throws Exception {
+        SqlSessionFactory sqlSessionFactory = getSqlSessionFactory();
+        //1. 获取到的SqlSession不会自动提交
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        try {
+            EmployeeMapper mapper = sqlSession.getMapper(EmployeeMapper.class);
+            Employee employee = new Employee(null, "jerry", "jerry@tom.com", "2");
+            System.out.println(employee);
+            System.out.println("============");
+            mapper.addEmp(employee);
+            System.out.println(employee);
+            //            employee.setLastName("jason");
+//            employee.setId(3);
+//            mapper.updateEmp(employee);
+//            mapper.deleteEmpById(3);
+            sqlSession.commit();
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+    private SqlSessionFactory getSqlSessionFactory() throws Exception{
+        String resources = "mybatis-config.xml";
+        InputStream is = Resources.getResourceAsStream(resources);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
+        return sqlSessionFactory;
+    }
+```
+
+
+
+## 3.2 参数处理 
+
+1）单个参数：mybatis不会做特殊处理
+
+2）多个参数
+
+​	异常：
+
+```
+org.apache.ibatis.exceptions.PersistenceException: 
+### Error querying database.  Cause: org.apache.ibatis.binding.BindingException: Parameter 'id' not found. Available parameters are [arg1, arg0, param1, param2]
+### Cause: org.apache.ibatis.binding.BindingException: Parameter 'id' not found. Available parameters are [arg1, arg0, param1, param2]
+```
+
+​	操作：
+
+​		方法：public Employee getEmpByIdAndLastName(Integer id ,String lastName);
+
+​		取值：#{id},#{lastName}
+
+
+
+​	mybatis会特殊处理，多个参数会被封装成一个map
+
+​	key：param1....paramN
+
+​	value：传入的参数值
+
+​	\#{}就是从map中获取指定的key值，或者参数的索引也可以
+
+命名参数：
+
+​	明确指定封装参数值map的key: @Param("id")
+
+POJO:
+
+​	如果多个参数正好是业务逻辑的数据模型，可以直接传入POJO：
+
+​	\#{属性名}：取出传入的pojo的属性值
+
+Map：
+
+如果多个参数不是业务模型中的数据，没有对应的pojo，不经常使用，为了方便，也可以传入map
+
+如果多个参数不是业务模型中的数据，但是经常使用，推荐写一个TO(Transfer Object) 数据传输对象
+
+
+
+3）参数封装扩展思考：
+
+1. public Employee getEmp(@Param("id"))Integer id, String lastName);
+
+   取值：id==》#{id/param1} lastName===>#{param2}
+
+2. public Employee getEmp(Integer id, @Param("e") Employee emp);
+
+   取值：id===》#{param1} lastName===》#{param2.LastName/e.lastName}
+
+3. 特别注意：如果是Collection（List、Set）类型或者数组
+
+   也会特殊处理，也是把传入的list或者数组封装在map中
+
+   ​	key：Collection(collection)，如果是List还可以使用（list）
+
+   ​	数组（array）
+
+   public Employee getEmpById(List<Integer> ids);
+
+   取值：取出第一个id的值：#{list[0]}
+
+## 3.3 结合源码，mybatis如何处理参数
+
+ParamNameResolver解析参数封装map
+
+(1) names:(0=id, 1=lastName)
+
+​	1) 获取每个标注Param注解的参数param值：id，lastName，赋值给name
+
+​	2）每次解析一个参数给map中保存信息:key是索引值， value是name的值
+
+​		name的值：
+
+​			标注了param注解，注解的值
+
+​			没有标注：
+
+​				1、全局配置：useActualParamName，name=参数名（要求JDK1.8）
+
+​				2、name=map.size() 相当于当前元素的索引
+
+​	names:{0=id, 1=lastName}	
+
+
+
+```java
+  public Object getNamedParams(Object[] args) {
+    final int paramCount = names.size();
+      //1. 参数为null直接返回
+    if (args == null || paramCount == 0) {
+      return null;
+      //2. 如果只有一个元素并且没有param注解：args[0]，单个参数直接返回
+    } else if (!hasParamAnnotation && paramCount == 1) {
+      return args[names.firstKey()];
+      //3. 多个元素或者有Param标注
+    } else {
+      final Map<String, Object> param = new ParamMap<Object>();
+      int i = 0;
+      // 4. 遍历names，构造器的时候就已经确定
+      for (Map.Entry<Integer, String> entry : names.entrySet()) {
+        //names的value作为新map的key，nameskey作为取值的参考
+        //eg：{id=args[0], lastName=args[1]}，因此可以在映射文件中取到相应的值
+        param.put(entry.getValue(), args[entry.getKey()]);
+        // add generic param names (param1, param2, ...)
+        final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
+        // ensure not to overwrite parameter named with @Param
+        if (!names.containsValue(genericParamName)) {
+          param.put(genericParamName, args[entry.getKey()]);
+        }
+        i++;
+      }
+      return param;
+    }
+  }
+```
+
+## 3.4 参数值的获取
+
+\#{}：可以获取map中的值或者pojo对象属性的值
+
+${}：可以获取map中的值或者pojo对象属性的值
+
+区别：\#{}是以预编译的形式，将参数设置到sql语句中，PreparedStatement
+
+​	   ${}：取出的值直接拼装在sql语句中，会有安全问题
+
+​	大多情况下，取参数的值都应该使用#{}，在某些情况下，原生jdbc不支持占位符的地方可以使用${}进行取值，
+
+比如分表；按年份分表拆分 select * from 2017_salary可以写为 select * from ${year}_salary
+
+
+
+## 3.5 #{}取值规则
+
+更丰富的用法
+
+规定参数的一些规则：
+
+​	javaType、jdbcType、mode（存储过程）、numericScale、resultMap、typeHandler、jdbcTypeName、expression
+
+jdbcType参演需要在某种特定的条件下被设置
+
+​	在数据为null的时候，有些数据库可能无法识别mybatis对null的默认处理，如oracle，mybatis对所有的null都映射为原生Jdbc的OTHER类型， oracle无法处理，mysql可以处理
+
+1、#{email, jdbcType=OTHER}
+
+2、全局配置文件mybatis-config.xml中：`<setting name="jdbcTypeForNull" value="NULL" />`
+
+
+
+## 3.6 Select返回List、Map
+
+- 返回List
+
+```xml
+    <!--resultType：如果返回的是一个集合，要写集合中元素的类型-->
+    <select id="getEmpsByLastNameLike" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee WHERE last_name LIKE #{lastName}
+    </select>
+```
+
+- 返回Map，key就是列名，值是对应的值
+
+``` xml
+<!--map是mybatis自定义的别名-->
+<select id="getEmpByIdReturnMap" resultType="map">
+    SELECT * FROM employee WHERE id=#{id}
+</select>
+```
+
+- 多条纪录封装成一个map，Map<Integer, Employee> 键是这条纪录的主键，值是记录封装的JavaBean
+
+```xml
+    <select id="getEmpByLastNameLikeReturnMap" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee WHERE last_name LIKE #{lastName}
+    </select>
+    
+```
+
+```java
+@MapKey("id")
+public Map<Integer, Employee> getEmpByLastNameLikeReturnMap(String lastName);
+```
+
