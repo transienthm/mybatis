@@ -127,7 +127,20 @@ public class MybatisTest {
             sqlSession.close();
         }
     }
-    
+
+    @Test
+    public void test07() throws Exception {
+        SqlSessionFactory sqlSessionFactory = getSqlSessionFactory();
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+
+        try {
+            Employee employee = sqlSession.selectOne("com.meituan.mybatis.mapper.dao.EmployeeMapperPlus.getEmpByIdStep", 1);
+            System.out.println(employee.getLastName());
+            System.out.println(employee.getDept().getDeptName());
+        } finally {
+            sqlSession.close();
+        }
+    }
     
     private SqlSessionFactory getSqlSessionFactory() throws Exception{
         String resources = "mybatis-config.xml";

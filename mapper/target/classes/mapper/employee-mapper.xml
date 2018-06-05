@@ -35,6 +35,9 @@
         SELECT * FROM employee WHERE last_name LIKE #{lastName}
     </select>
     
+    <select id="getEmpByDeptId" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee WHERE d_id=#{did}
+    </select>
     <!--parameterType：可以省略
         mysql支持自增主键，自增主键的获取，mybatis也是利用statement.getGeneratedKeys(),
         useGeneratedKeys="true"：使用自增主键获取主键值策略

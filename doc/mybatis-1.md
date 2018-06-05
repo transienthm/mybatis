@@ -368,7 +368,7 @@ public interface EmployeeMapper {
 
 
 
-# 3.Mybatis映射文件 
+# 3. Mybatis映射文件 
 
 MyBatis 的真正强大在于它的映射语句，也是它的魔力所在。由于它的异常强大，映射器的 XML 文件就显得相对简单。如果拿它跟具有相同功能的 JDBC 代码进行对比，你会立即发现省掉了将近 95% 的代码。MyBatis 就是针对 SQL 构建的，并且比普通的方法做的更好。 
 
@@ -676,7 +676,7 @@ public Map<Integer, Employee> getEmpByLastNameLikeReturnMap(String lastName);
 
 ## 3.8 关联查询
 
-第一种resultMap的写法：
+- 第一种resultMap的写法：
 
 ```xml
 <!--
@@ -697,7 +697,7 @@ public Map<Integer, Employee> getEmpByLastNameLikeReturnMap(String lastName);
     </select>
 ```
 
-第二种resultMap的写法
+- 第二种resultMap的写法
 
 ```xml
     <resultMap id="myDifEmp2" type="com.meituan.mybatis.mapper.bean.Employee">
@@ -717,4 +717,180 @@ public Map<Integer, Employee> getEmpByLastNameLikeReturnMap(String lastName);
         </association>
     </resultMap>
 ```
+
+- 使用association进行分步查询
+
+```xml
+    <resultMap id="myEmpByStep" type="com.meituan.mybatis.mapper.bean.Employee">
+        <id column="id" property="id" />
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <!--association定义关联对象的封装规则
+            select：表明当前属性是调用select指定的方法查出的结果
+            column：指定将哪一列的值传给这个方法
+        -->
+        <association property="dept" select="com.meituan.mybatis.mapper.dao.DepartmentMapper.getDeptById"
+            column="d_id"
+        ></association>
+    </resultMap>
+
+    <select id="getEmpByIdStep" resultMap="myEmpByStep">
+        SELECT * FROM employee WHERE id=#{id}
+    </select>
+```
+
+其中association中select的部分为
+
+```xml
+<mapper namespace="com.meituan.mybatis.mapper.dao.DepartmentMapper">
+    <select id="getDeptById" resultType="com.meituan.mybatis.mapper.bean.Department">
+      SELECT* FROM department WHERE id=#{id}
+    </select>
+    
+</mapper>
+```
+
+## 3.9 延迟加载
+
+```xml
+<!--可以使用延迟加载
+    Employee===》Dept
+        每次查询Employee对象的时候，都将部门信息一起查询出来，而需要是：
+         部门信息在使用的时候再去查询
+         分步查询的基础之上，加上两个配置，即可实现延迟加载
+-->
+```
+
+mybatis-config.xml
+
+```xml
+        <!--显示指定每个需要更改的配置的值，即使是默认的，以防版本更替带来的问题-->
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <setting name="aggressiveLazyLoading" value="false"/>
+```
+
+测试
+
+```java
+    @Test
+    public void test07() throws Exception {
+        SqlSessionFactory sqlSessionFactory = getSqlSessionFactory();
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+
+        try {
+            Employee employee = sqlSession.selectOne("com.meituan.mybatis.mapper.dao.EmployeeMapperPlus.getEmpByIdStep", 1);
+            System.out.println(employee.getLastName());
+            System.out.println(employee.getDept().getDeptName());
+        } finally {
+            sqlSession.close();
+        }
+    }
+```
+
+
+
+输出:
+
+在两次输出中出现一段sql查询
+
+```verilog
+14:23:18.093 [main] DEBUG com.meituan.mybatis.mapper.dao.EmployeeMapperPlus.getEmpByIdStep - ==>  Preparing: SELECT * FROM employee WHERE id=? 
+14:23:18.133 [main] DEBUG com.meituan.mybatis.mapper.dao.EmployeeMapperPlus.getEmpByIdStep - ==> Parameters: 1(Integer)
+14:23:18.227 [main] DEBUG com.meituan.mybatis.mapper.dao.EmployeeMapperPlus.getEmpByIdStep - <==      Total: 1
+tom
+14:23:18.228 [main] DEBUG com.meituan.mybatis.mapper.dao.DepartmentMapper.getDeptById - ==>  Preparing: SELECT* FROM department WHERE id=? 
+14:23:18.228 [main] DEBUG com.meituan.mybatis.mapper.dao.DepartmentMapper.getDeptById - ==> Parameters: 2(Integer)
+14:23:18.269 [main] DEBUG com.meituan.mybatis.mapper.dao.DepartmentMapper.getDeptById - <==      Total: 1
+销售部
+```
+
+## 3.10 collection定义关联集合封装规则 
+
+- 嵌套结果集的方式
+
+```xml
+    <!--场景二
+    查询部门的时候将部门对应的所有员工信息也查询出来
+-->
+    <resultMap id="MyDept" type="com.meituan.mybatis.mapper.bean.Department">
+        <id column="did" property="id" />
+        <result column="dept_name" property="deptName"/>
+        <!--collection定义关联集合类型的属性的封装规则-->
+        <collection property="emps" ofType="com.meituan.mybatis.mapper.bean.Employee">
+            <!--定义这个今本中元素的封装规则-->
+            <id column="eid" property="id"/>
+            <result column="last_name" property="lastName"/>
+            <result column="email" property="email"/>
+            <result column="gender" property="gender"/>
+        </collection>
+    </resultMap>
+    <select id="getDeptByIdPlus" resultMap="MyDept">
+        SELECT d.id did, d.dept_name dept_name, e.id eid, e.last_name last_name,
+            e.email email, e.gender gender
+        FROM department d 
+        LEFT JOIN employee e 
+        ON d.id=e.d_id
+        WHERE d.id=#{id}
+    </select>
+```
+
+- 分步方式
+
+```xml
+    <resultMap id="MyDeptStep" type="com.meituan.mybatis.mapper.bean.Department">
+        <id column="id" property="id"/>
+        <result column="departmentName" property="deptName"/>
+        <collection property="emps" select="com.meituan.mybatis.mapper.dao.EmployeeMapper.getEmpByDeptId"
+            column="id"
+        ></collection>
+    </resultMap>
+    <select id="getDeptByIdStep" resultMap="MyDeptStep">
+        SELECT id,dept_name departmentName FROM department WHERE id=#{id}
+    </select>
+```
+
+- 扩展：
+
+  多列传值
+
+  ​	封装成map传递
+
+  ​	column="{key1=val1, key2=val2}"
+
+  fetchType="lazy"，表示使用延迟加载
+
+  	- lazy：延迟加载
+  - eager：立即加载
+
+## 3.11 descriminator 鉴别器
+
+```
+<discriminator javaType="int" column="draft">
+  <case value="1" resultType="DraftPost"/>
+</discriminator>
+```
+
+有时一个单独的数据库查询也许返回很多不同 (但是希望有些关联) 数据类型的结果集。 鉴别器元素就是被设计来处理这个情况的, 还有包括类的继承层次结构。 鉴别器非常容易理 解,因为它的表现很像 Java 语言中的 switch 语句。
+
+定义鉴别器指定了 column 和 javaType 属性。 列是 MyBatis 查找比较值的地方。 JavaType 是需要被用来保证等价测试的合适类型(尽管字符串在很多情形下都会有用)。比如:
+
+```xml
+<resultMap id="vehicleResult" type="Vehicle">
+  <id property="id" column="id" />
+  <result property="vin" column="vin"/>
+  <result property="year" column="year"/>
+  <result property="make" column="make"/>
+  <result property="model" column="model"/>
+  <result property="color" column="color"/>
+  <discriminator javaType="int" column="vehicle_type">
+    <case value="1" resultMap="carResult"/>
+    <case value="2" resultMap="truckResult"/>
+    <case value="3" resultMap="vanResult"/>
+    <case value="4" resultMap="suvResult"/>
+  </discriminator>
+</resultMap>
+```
+
+# 4. 动态sql
 

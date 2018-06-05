@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+ namespace: 名称空间
+ id: 唯一标识
+ returnType: 返回值类型
+ #{id} 从传递过来的参数中取出id值
+-->
+<mapper namespace="com.meituan.mybatis.mapper.dao.EmployeeMapper">
+    <select id="getEmpById" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT *
+        FROM employee
+        WHERE id = #{id}
+    </select>
+    
+    <select id="getEmpByIdAndLastName" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee
+        WHERE id=#{id} AND last_name=#{lastName}
+    </select>
+    
+    <!--resultType：如果返回的是一个集合，要写集合中元素的类型-->
+    <select id="getEmpsByLastNameLike" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee WHERE last_name LIKE #{lastName}
+    </select>
+    
+    <!--map是mybatis自定义的别名-->
+    <select id="getEmpByIdReturnMap" resultType="map">
+        SELECT * FROM employee WHERE id=#{id}
+    </select>
+    
+    <!--多条纪录封装成一个map，Map<Integer, Employee> 键是这条纪录的主键，值是记录封装的JavaBean-->
+    <select id="getEmpByLastNameLikeReturnMap" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee WHERE last_name LIKE #{lastName}
+    </select>
+    
+    <select id="getEmpByDeptId" resultType="com.meituan.mybatis.mapper.bean.Employee">
+        SELECT * FROM employee WHERE d_id=#{did}
+    </select>
+    <!--parameterType：可以省略
+        mysql支持自增主键，自增主键的获取，mybatis也是利用statement.getGeneratedKeys(),
+        useGeneratedKeys="true"：使用自增主键获取主键值策略
+        keyProperty：指定对应的主键属性，也就是mybatis获取到主键值以后，将这个值封装给JavaBean的哪个属性
+    -->
+    <insert id="addEmp" parameterType="com.meituan.mybatis.mapper.bean.Employee"
+        useGeneratedKeys="true" keyProperty="id"
+    >
+        INSERT INTO employee (last_name, email, gender)
+        VALUES (#{lastName}, #{email}, #{gender})
+    </insert>
+
+    <update id="updateEmp">
+        UPDATE employee
+        SET last_name = #{lastName}, email = #{email}, gender = #{gender}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteEmpById">
+        DELETE FROM employee WHERE id=#{id}
+    </delete>
+</mapper>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.meituan.mybatis.mapper.dao.EmployeeMapperPlus">
+
+    <!--自定义某个JavaBean的封装规则
+        type:自定义规则的Java类型
+        id:唯一id，方便使用
+    -->
+    <resultMap id="myEmp" type="com.meituan.mybatis.mapper.bean.Employee">
+        <!--column指定哪一列， property指定对应JavaBean属性
+            id：指定主键列的封装规则，会在底层优化规则
+        -->
+        <id column="id" property="id"/>
+        <!--定义普通列的封装规则-->
+        <result column="last_name" property="lastName"/>
+        <!--其他不指定的列会自动封装，推荐只要写resultMap，就将全列的映射规则都写上-->
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+    </resultMap>
+    
+    <select id="getEmpById" resultMap="myEmp">
+        SELECT *
+        FROM employee
+        WHERE id = #{id}
+    </select>
+    
+    <!--
+        场景一：
+            查询Employee的同时查询员工所在的部门
+    -->
+    <resultMap id="myDifEmp" type="com.meituan.mybatis.mapper.bean.Employee">
+        <id column="id" property="id" />
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <result column="did" property="dept.id"/>
+        <result column="dept_name" property="dept.departmentName"/>
+    </resultMap>
+
+    <resultMap id="myDifEmp2" type="com.meituan.mybatis.mapper.bean.Employee">
+        <id column="id" property="id" />
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <!--
+        association可以指定联合的JavaBean对象
+            property ="dept" 指定哪个属性是联合的对象
+            javaType：指定这个属性对象的类型
+        -->
+
+        <association property="dept" javaType="com.meituan.mybatis.mapper.bean.Department">
+            <id column="did" property="id"/>
+            <result column="dept_name" property="departmentName"/>
+        </association>
+    </resultMap>
+    
+    <select id="getEmpAndDept" resultMap="myDifEmp2">
+        SELECT e.id id, e.last_name lastName, e.email email, e.gender gender, e.d_id d_id, d.id did , d.dept_name dept_name from employee e, department d 
+        WHERE e.d_id = d.id AND e.id=#{id}
+    </select>
+
+    <!--
+        使用association进行分步查询
+            1. 先根据员工id查询员工信息
+            2. 根据查询员工信息中的d_id值去部门表查出部门信息
+            3. 部门设置到员工中
+    -->
+    <resultMap id="myEmpByStep" type="com.meituan.mybatis.mapper.bean.Employee">
+        <id column="id" property="id" />
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <!--association定义关联对象的封装规则
+            select：表明当前属性是调用select指定的方法查出的结果
+            column：指定将哪一列的值传给这个方法
+        -->
+        <association property="dept" select="com.meituan.mybatis.mapper.dao.DepartmentMapper.getDeptById"
+            column="d_id"
+        ></association>
+    </resultMap>
+
+    <select id="getEmpByIdStep" resultMap="myEmpByStep">
+        SELECT * FROM employee WHERE id=#{id}
+    </select>
+    
+    <!--可以使用延迟加载
+        Employee===》Dept
+            每次查询Employee对象的时候，都将部门信息一起查询出来，而需要是：
+             部门信息在使用的时候再去查询
+             分步查询的基础之上，加上两个配置，即可实现延迟加载
+    -->
+    
+
+</mapper>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.meituan.mybatis.mapper.dao.DepartmentMapper">
+    <select id="getDeptById" resultType="com.meituan.mybatis.mapper.bean.Department">
+      SELECT* FROM department WHERE id=#{id}
+    </select>
+
+    <!--场景二
+    查询部门的时候将部门对应的所有员工信息也查询出来
+-->
+    <resultMap id="MyDept" type="com.meituan.mybatis.mapper.bean.Department">
+        <id column="did" property="id" />
+        <result column="dept_name" property="deptName"/>
+        <!--collection定义关联集合类型的属性的封装规则-->
+        <collection property="emps" ofType="com.meituan.mybatis.mapper.bean.Employee">
+            <!--定义这个今本中元素的封装规则-->
+            <id column="eid" property="id"/>
+            <result column="last_name" property="lastName"/>
+            <result column="email" property="email"/>
+            <result column="gender" property="gender"/>
+        </collection>
+    </resultMap>
+    <select id="getDeptByIdPlus" resultMap="MyDept">
+        SELECT d.id did, d.dept_name dept_name, e.id eid, e.last_name last_name,
+            e.email email, e.gender gender
+        FROM department d 
+        LEFT JOIN employee e 
+        ON d.id=e.d_id
+        WHERE d.id=#{id}
+    </select>
+   
+   
+    <resultMap id="MyDeptStep" type="com.meituan.mybatis.mapper.bean.Department">
+        <id column="id" property="id"/>
+        <result column="departmentName" property="deptName"/>
+        <collection property="emps" select="com.meituan.mybatis.mapper.dao.EmployeeMapper.getEmpByDeptId"
+            column="id"
+        ></collection>
+    </resultMap>
+    <select id="getDeptByIdStep" resultMap="MyDeptStep">
+        SELECT id,dept_name departmentName FROM department WHERE id=#{id}
+    </select>
+    
+    <!--
+    discriminator 鉴别器：
+    mybatis可以使用discriminator判断某列的值，然后根据某列的值改变封装行为
+        如：封装Employee
+            如果是女生，就把部门信息查询出来，否则不查询
+            如果是男生，把last_name赋值给email
+    -->
+</mapper>
