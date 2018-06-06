@@ -894,3 +894,104 @@ tom
 
 # 4. 动态sql
 
+MyBatis 的强大特性之一便是它的动态 SQL。 
+
+## 4.1 if where trim
+
+```xml
+  <!--
+        查询员工，需求：携带了哪个字段查询条件就整个这个字段的值
+    -->
+    <select id="getEmpsByConditionIf" resultType="com.meituan.mybatis.dynamic.bean.Employee">
+        SELECT * FROM employee WHERE
+        <!--
+          test:判断表达式（OGNL）
+          c: if test
+         从参数中取值进行判断
+        遇见特殊符号应该去写转义字符
+        &&需要写为&amp;
+        "需要写为&quot;
+        -->
+        <if test="id != null">
+            id=#{id}
+        </if>
+        <if test="lastName != null and lastName!=''">
+            AND last_name LIKE #{lastName}
+        </if>
+        <if test="email!=null and email.trim()!=&quot;&quot;">
+            AND email=#{email}
+        </if>
+        <if test="gender==0 or gender == 1">
+            AND gender=#{gender}
+        </if>
+    </select>
+```
+
+查询时，某些条件缺失（如id），则可能导致sql拼装出现问题
+
+解决方案：
+
+1、WHERE 1=1
+
+```sql
+WHERE 1=1 
+<if test = "">
+	AND ***
+</if>
+```
+
+2、mybatis推荐的的方案：采用`<where>`标签，将所有的查询条件包括在内，mybatis就会将where标签中拼装的sql，多出来的and或者or去掉；`where`只会去掉前面多出来的and或者or
+
+```xml
+<where>
+    <!--
+              test:判断表达式（OGNL）
+              c: if test
+             从参数中取值进行判断
+            遇见特殊符号应该去写转义字符
+            &&需要写为&amp;
+            "需要写为&quot;
+            -->
+    <if test="id != null">
+        id=#{id}
+    </if>
+    <if test="lastName != null and lastName!=''">
+        AND last_name LIKE #{lastName}
+    </if>
+    <if test="email!=null and email.trim()!=&quot;&quot;">
+        AND email=#{email}
+    </if>
+    <if test="gender==0 or gender == 1">
+        AND gender=#{gender}
+    </if>
+</where>
+```
+
+3、trim标签的使用
+
+```xml
+    <select id="getEmpsByConditionTrim" resultType="com.meituan.mybatis.dynamic.bean.Employee">
+        SELECT * FROM employee
+        <!---
+         prefix="" 前缀：trim标签体中是整个字符串拼串后的结果，prefix会给拼串后的整个字符串加一个前缀
+         prefixOverrides=""  前缀覆盖：去掉整个字符串前面多余的字符
+         suffix=""  后缀：整个串加后缀
+         suffixOverrides=""  去掉整个串后面的字符
+        -->
+        <trim prefix="where" suffixOverrides="and">
+            <if test="id != null">
+                id=#{id} AND
+            </if>
+            <if test="lastName != null and lastName!=''">
+                 last_name LIKE #{lastName} AND
+            </if>
+            <if test="email!=null and email.trim()!=&quot;&quot;">
+                email=#{email} AND
+            </if>
+            <if test="gender==0 or gender == 1">
+                gender=#{gender}
+            </if>
+        </trim>
+    </select>
+```
+

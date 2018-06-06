@@ -3,13 +3,13 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.meituan.mybatis.mapper.dao.EmployeeMapperPlus">
+<mapper namespace="com.meituan.mybatis.dynamic.dao.EmployeeMapperPlus">
 
     <!--自定义某个JavaBean的封装规则
         type:自定义规则的Java类型
         id:唯一id，方便使用
     -->
-    <resultMap id="myEmp" type="com.meituan.mybatis.mapper.bean.Employee">
+    <resultMap id="myEmp" type="com.meituan.mybatis.dynamic.bean.Employee">
         <!--column指定哪一列， property指定对应JavaBean属性
             id：指定主键列的封装规则，会在底层优化规则
         -->
@@ -31,7 +31,7 @@
         场景一：
             查询Employee的同时查询员工所在的部门
     -->
-    <resultMap id="myDifEmp" type="com.meituan.mybatis.mapper.bean.Employee">
+    <resultMap id="myDifEmp" type="com.meituan.mybatis.dynamic.bean.Employee">
         <id column="id" property="id" />
         <result column="last_name" property="lastName"/>
         <result column="email" property="email"/>
@@ -40,7 +40,7 @@
         <result column="dept_name" property="dept.departmentName"/>
     </resultMap>
 
-    <resultMap id="myDifEmp2" type="com.meituan.mybatis.mapper.bean.Employee">
+    <resultMap id="myDifEmp2" type="com.meituan.mybatis.dynamic.bean.Employee">
         <id column="id" property="id" />
         <result column="last_name" property="lastName"/>
         <result column="email" property="email"/>
@@ -51,7 +51,7 @@
             javaType：指定这个属性对象的类型
         -->
 
-        <association property="dept" javaType="com.meituan.mybatis.mapper.bean.Department">
+        <association property="dept" javaType="com.meituan.mybatis.dynamic.bean.Department">
             <id column="did" property="id"/>
             <result column="dept_name" property="departmentName"/>
         </association>
@@ -68,7 +68,7 @@
             2. 根据查询员工信息中的d_id值去部门表查出部门信息
             3. 部门设置到员工中
     -->
-    <resultMap id="myEmpByStep" type="com.meituan.mybatis.mapper.bean.Employee">
+    <resultMap id="myEmpByStep" type="com.meituan.mybatis.dynamic.bean.Employee">
         <id column="id" property="id" />
         <result column="last_name" property="lastName"/>
         <result column="email" property="email"/>
@@ -77,7 +77,7 @@
             select：表明当前属性是调用select指定的方法查出的结果
             column：指定将哪一列的值传给这个方法
         -->
-        <association property="dept" select="com.meituan.mybatis.mapper.dao.DepartmentMapper.getDeptById"
+        <association property="dept" select="com.meituan.mybatis.dynamic.dao.DepartmentMapper.getDeptById"
             column="d_id"
         ></association>
     </resultMap>

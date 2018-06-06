@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meituan.mybatis.dynamic.dao.DynamicMapper">
+    <!--
+        查询员工，需求：携带了哪个字段查询条件就整个这个字段的值
+    -->
+    <select id="getEmpsByConditionIf" resultType="com.meituan.mybatis.dynamic.bean.Employee">
+        SELECT * FROM employee WHERE
+        <!--
+          test:判断表达式（OGNL）
+          c: if test
+         从参数中取值进行判断
+        遇见特殊符号应该去写转义字符
+        &&需要写为&amp;
+        "需要写为&quot;
+        -->
+        <if test="id != null">
+            id=#{id}
+        </if>
+        <if test="lastName != null and lastName!=''">
+            AND last_name LIKE #{lastName}
+        </if>
+        <if test="email!=null and email.trim()!=&quot;&quot;">
+            AND email=#{email}
+        </if>
+        <if test="gender==0 or gender == 1">
+            AND gender=#{gender}
+        </if>
+    </select>
+</mapper>

@@ -40,7 +40,7 @@
     -->
     <typeAliases>
         <!--<typeAlias type="com.meituan.mybatis.config.bean.Employee" alias="emp"></typeAlias>-->
-        <package name="com.meituan.mybatis.mapper"/>
+        <package name="com.meituan.mybatis.dynamic"/>
     </typeAliases>
     
     <!--
@@ -96,6 +96,7 @@
         <mapper resource="mapper/employee-mapper.xml"/>
         <mapper resource="mapper/employee-plus-mapper.xml"/>
         <mapper resource="mapper/department-mapper.xml"/>
+        <mapper resource="mapper/employee-dynamic-mapper.xml"/>
     </mappers>
     
     <!--
