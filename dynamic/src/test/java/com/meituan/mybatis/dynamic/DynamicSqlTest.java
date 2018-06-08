@@ -1,6 +1,8 @@
 package com.meituan.mybatis.dynamic;
 
+import com.meituan.mybatis.dynamic.bean.Department;
 import com.meituan.mybatis.dynamic.bean.Employee;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -9,6 +11,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -38,6 +42,43 @@ public class DynamicSqlTest {
             sqlSession.close();            
         }
         
+    }
+
+    /**
+     * test for choose
+     */
+    @Test
+    public void test02() {
+        SqlSessionFactory sqlSessionFactory = getSqlSessionFactory();
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        try {
+            Employee employee = new Employee(null, "%e%", null, "3", null);
+            List<Employee> emps = sqlSession.selectList(PACKAGE + "getEmpsByConditionChoose", employee);
+            for (Employee e : emps) {
+                System.out.println(e);
+            }
+        } finally {
+            sqlSession.close();
+        }
+    }
+
+    @Test
+    public void test03() {
+        SqlSessionFactory sqlSessionFactory = getSqlSessionFactory();
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+        try {
+            Department department = new Department(3, "营销部");
+            Employee employee1 = new Employee(null, "harry", "harry@tom.com", "1", department);
+            Employee employee2 = new Employee(null, "lily", "lily@tom.com", "1", department);
+
+            List<Employee> emps = new ArrayList<>();
+            emps.add(employee1);
+            emps.add(employee2);
+            sqlSession.insert(PACKAGE + "addEmpsByConditionForeach", emps);
+            sqlSession.commit();
+        } finally {
+            sqlSession.close();
+        }
     }
 
     private SqlSessionFactory getSqlSessionFactory() {

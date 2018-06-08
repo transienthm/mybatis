@@ -894,7 +894,7 @@ tom
 
 # 4. 动态sql
 
-MyBatis 的强大特性之一便是它的动态 SQL。 
+MyBatis 的强大特性之一便是它的动态 SQL。 mybatis支持OGNL表达式。
 
 ## 4.1 if where trim
 
@@ -995,3 +995,118 @@ WHERE 1=1
     </select>
 ```
 
+## 4.2 choose set标签
+
+choose 分支选择，相当于带了break的switch-case
+
+```xml
+    <!-- 
+        如果带了id就用id查，如果带了lastName就用lastName查
+    -->
+    <select id="getEmpsByConditionChoose" resultType="com.meituan.mybatis.dynamic.bean.Employee">
+        SELECT * FROM employee
+        <where>
+<!--             如果带了id就用id查，如果带了lastName就用lastName查-->
+            <choose>
+                <when test="id!=null">
+                    id=#{id}
+                </when>
+                <when test="lastName!=null">
+                    last_name LIKE #{lastName}
+                </when>
+                <when test="email!=null">
+                    email=#{email}
+                </when>
+                <otherwise>
+                    1=1
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+```
+
+set标签用于update，可以去掉多掉多余的“，”
+
+## 4.3 foreach
+
+```xml
+    <select id="getEmpsByConditionForeach" resultType="com.meituan.mybatis.dynamic.bean.Employee">
+      SELECT * FROM employee WHERE id IN
+        <!--
+            collection:指定要遍历的集合
+                list类型的参数会特殊处理封装在map中，map的key就叫list
+            item：将遍历出的元素赋值给指定的变量
+                #{变量名}就能取出变量的值也就是当前遍历出的元素
+            separator：每个元素之间的分隔符
+            open：遍历出的所有结果拼接一个开始的字符
+            close：遍历出的所有结果拼接一个结束的字符
+            index：索引。遍历list的时候是索引
+                        遍历map的时候index表示的就是map的key，item就是map的值
+        -->
+        <foreach collection="ids" item="item_id" separator="," open="(" close=")">
+            #{item_id}
+        </foreach>
+
+    </select>
+```
+
+批量插入：
+
+```xml
+    <insert id="addEmpsByConditionForeach">
+        INSERT INTO employee (last_name, email, gender, d_id) VALUES
+        <foreach collection="list" item="emp" separator=",">
+            (#{emp.lastName}, #{emp.email}, #{emp.gender}, #{emp.dept.id})
+        </foreach>
+    </insert>
+```
+
+注意：list类型的参数会特殊处理封装在map中，map的key就叫list。如果期望此时传入的参数名由自己定制，可以
+
+1、@Param("***")
+
+2、将list传入自己的map中
+
+## 4.4 mybatis内置参数
+
+mybatis默认有两个内因参数
+
+1、 _parameter：代表整个参数
+
+​	单个参数：_parameter就是这个参数
+
+​	多个参数：参数会被封装为一个map；_parameter就是代表这个map
+
+2、 _databaseId: 如果配置了databaseIdProvider标签，
+
+​	_databaseId就是代表当前数据库的别名
+
+## 4.5 bind
+
+bind可以将OGNL表达式的值绑定到一个变量中，方便后来引用，例如：
+
+`<bind name="_lastName" value="'%'+lastName+'%'">`
+
+## 4.6 sql 抽取可重用的片段
+
+使用sql标签定义可重用片段
+
+```xml
+<sql id="insertColumn">
+    employee_id, last_name, email
+</sql>
+```
+
+使用include标签引用可重用片段
+
+```xml
+<include refid"insertColumn"></include>
+```
+
+# 5. 缓存机制
+
+缓存可以极大的提升查询效率。mybatis默认定义了两级缓存：
+
+- 默认情况下，只有一级缓存(SqlSession级别缓存，也称为本地缓存)开启。
+- 二级缓存需要手动开启和配置，是基于namespace级别的缓存，也称全局缓存。
+- 为了提高扩展性，mybatis定义了缓存接口Cache。可以通过实现cache接口来自定义二级缓存
