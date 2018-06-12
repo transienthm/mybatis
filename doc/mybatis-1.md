@@ -1110,3 +1110,82 @@ bind可以将OGNL表达式的值绑定到一个变量中，方便后来引用，
 - 默认情况下，只有一级缓存(SqlSession级别缓存，也称为本地缓存)开启。
 - 二级缓存需要手动开启和配置，是基于namespace级别的缓存，也称全局缓存。
 - 为了提高扩展性，mybatis定义了缓存接口Cache。可以通过实现cache接口来自定义二级缓存
+
+## 5.1 一级缓存
+
+与数据库同一次会话期间查询到的数据会放在本地缓存中，以后如果需要获取相同的数据，直接从缓存中拿，没必要再去查询数据库。mybatis默认开启一级缓存。
+
+**一级缓存失效情况**
+
+- sqlSession不同
+- sqlSession相同，查询条件不同（当前一级缓存中还没有这个数据）
+- sqlSession相同，两次查询期间执行了增删改（可能会导致当前数据失效）
+- 手动清空了缓存`sqlSession.clearCache();`
+
+## 5.2 二级缓存
+
+基于namespace级别的缓存，一个namespace对应一个二级缓存
+
+工作机制：
+
+1、一个会话（session），查询一条ovry，这个数据就会被放在当前会话的一级缓存中
+
+2、 如果当前会话关闭，一级缓存中的数据会被保存到二级缓存中；新的会话查询信息，可以参照二级缓存
+
+3、 不同namespace查出的数据会放在自己对应的缓存中（map）
+
+4、 查出的数据会默认先放在一级缓存中，只有会话提交或者关闭以后，一级缓存中的数据才会转移到二级缓存中
+
+**使用：**
+
+1、开启全局二级缓存配置，`<setting name="cacheEnabled" value="true"/>`
+
+2、在某个namespace中进行配置
+
+```xml
+<cache  eviction="FIFO" flushInterval="60000"  size="512" readOnly="true"/>
+```
+
+- eviction
+
+  1、LRU – 最近最少使用的:移除最长时间不被使用的对象。
+
+  2、FIFO – 先进先出:按对象进入缓存的顺序来移除它们。
+
+  3、SOFT – 软引用:移除基于垃圾回收器状态和软引用规则的对象。
+
+  4、WEAK – 弱引用:更积极地移除基于垃圾收集器状态和弱引用规则的对象。
+
+  默认LRU
+
+- flushInterval：缓存刷新间隔
+
+  缓存多久清空一次，默认不清空，单位毫秒
+
+- readOnly：是否只读
+
+  true：只读，mybatis认为所有从缓存中获取数据的操作都是只读操作，不会修改数据。mybatis为了加快获取速度，直接会将数据在缓存中的引用交给用户。特点：不安全，速度快
+
+  false：不只读。mybatis认为获取的数据可能会被修改，mybatis会利用序列化&反序列的技术克隆一份新的数据给用户。特点：安全，速度慢
+
+- size：缓存多少个元素
+
+- type：指定自定义缓存的全类名，实现Cache接口即可
+
+3、 pojo需要实现序列化接口
+
+## 5.3 和缓存有关的设置和属性
+
+1、`<setting name="cacheEnabled" value="true"/>`开启或关闭缓存
+
+2、 每个select标签都有useCache属性，true为使用，false为不使用（一级缓存依然使用，二级缓存不使用）
+
+3、每个增删改标签的flushCache属性值为true，即增删改执行完成后应付清除缓存，包括一级、二级缓存。查询标签默认flushCache="false"，当设置为true时，每次查询之前都会清空缓存，缓存没有被使用
+
+4、`sqlSession.clearCache();`只是清除一级缓存
+
+5、localCacheScope：本地缓存作用域（一级缓存），可选择SESSION、STATEMENT。STATEMENT可以禁用缓存
+
+## 5.4 缓存原理
+
+![缓存](/Users/wangbin/Downloads/缓存.png)
