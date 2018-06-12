@@ -191,10 +191,66 @@ Redis 与其他 key - value 缓存产品有以下三个特点
 
 5、定时器、计数器
 
- 
+## 2.3 Hello World
 
- 
+redis安装并启动`redis-server /path/to/redis.conf`完成后
 
- 
+`redis-cli -p 6379`
 
- 
+此时终端会变成：`127.0.0.1:6379> `
+
+输入:`set k1 "hello world"` 
+
+取值：`get k1`，此时会返回`"hello world"`
+
+## 2.4 Redis启动后杂项基础知识
+
+- 单进程
+
+单进程模型来处理客户端的请求。对读写等事件的响应是通过对epoll函数的包装来做到的。Redis的实际处理速度完全依靠主进程的执行效率
+
+epoll是Linux内核为处理大批量文件描述符而作了改进的epoll，是Linux下多路复用IO接口select/poll的增强版本，它能显著提高程序在大量并发连接中只有少量活跃的情况下的系统CPU利用率。
+
+- 默认16个数据库，类似数组下表从零开始，初始默认使用零号库
+- select命令切换数据库
+- dbsize查看当前数据库的key的数量
+- flushdb：清空当前库
+- flushall；通杀全部库
+- 统一密码管理，16个库都是同样密码，要么都OK要么一个也连接不上
+- Redis索引都是从零开始
+- 为什么默认端口是6379
+
+# 3、Redis的数据类型
+
+- string（字符串）
+
+  string是redis最基本的类型，你可以理解成与Memcached一模一样的类型，一个key对应一个value。
+
+
+  string类型是**二进制安全(Binary-safe)**的。意思是redis的string可以包含任何数据。比如jpg图片或者序列化的对象 。
+
+
+  string类型是Redis最基本的数据类型，一个redis中字符串value最多可以是512M。
+
+- hash（哈希，类似java里的Map）
+
+  Redis hash 是一个键值对集合。
+  Redis hash是一个string类型的field和value的映射表，hash特别适合用于存储对象。
+
+
+  类似Java里面的Map<String,Object>。
+
+- list（列表）
+
+  Redis 列表是简单的字符串列表，按照插入顺序排序。你可以添加一个元素到列表的头部（左边）或者尾部（右边）。
+  它的底层实际是个链表。
+
+- set（集合）
+
+  Redis的Set是string类型的无序集合。它是通过HashTable实现实现的。
+
+- zset(sorted set：有序集合)
+
+  Redis zset 和 set 一样也是string类型元素的集合,且不允许重复的成员。
+  不同的是每个元素都会关联一个double类型的分数。
+  redis正是通过分数来为集合中的成员进行从小到大的排序。zset的成员是唯一的,但分数(score)却可以重复。
