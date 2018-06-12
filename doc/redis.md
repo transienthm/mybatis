@@ -254,3 +254,43 @@ epoll是Linux内核为处理大批量文件描述符而作了改进的epoll，�
   Redis zset 和 set 一样也是string类型元素的集合,且不允许重复的成员。
   不同的是每个元素都会关联一个double类型的分数。
   redis正是通过分数来为集合中的成员进行从小到大的排序。zset的成员是唯一的,但分数(score)却可以重复。
+
+  
+
+哪里去获得redis常见数据类型操作命令: http://redisdoc.com/
+
+## 3.1 key关键字 
+
+ exists key的名字，判断某个key是否存在
+ keys *
+ move key db   --->当前库就没有了，被移除了
+ expire key 秒钟：为给定的key设置过期时间
+ ttl key 查看还有多少秒过期，-1表示永不过期，-2表示已过期，ttl即time to leave
+ type key 查看你的key是什么类型
+
+## 3.2 String
+
+特点：单值单value 
+
+基本命令：
+
+`set/get/del/append/strlen`
+
+`Incr/decr/incrby/decrby`,一定要是数字才能进行加减
+
+getrange/setrange 字符串截取或重新设置值，用法：`getrange k1 0 1`，`setrange k1 0 xxx`
+
+mset/mget/msetnx
+
+ getset(先get再set)
+ setex(set with expire)键秒值/setnx(set if not exist)
+
+​	
+​	
+​	 getrange/setrange
+	 setex(set with expire)键秒值/setnx(set if not exist)
+	 mset/mget/msetnx
+	 getset(先get再set)
+
+Incr/decr/incrby/decrby,一定要是数字才能进行加减
+ set/get/del/append/strlen
