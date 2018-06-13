@@ -270,27 +270,108 @@ epoll是Linux内核为处理大批量文件描述符而作了改进的epoll，�
 
 ## 3.2 String
 
-特点：单值单value 
+性质：单值单value 
 
-基本命令：
+**基本命令：**
 
-`set/get/del/append/strlen`
+- `set/get/del/append/strlen`
+- `Incr/decr/incrby/decrby`,一定要是数字才能进行加减
+- getrange/setrange 字符串截取或重新设置值，用法：`getrange k1 0 1`，`setrange k1 0 xxx`
+- setex(set with expire)键秒值，用法：`setex k1 10 v1`/setnx(set if not exist) 用法：`setnx k1 v1`
+- mset/mget/msetnx : 多个设值、取值，用法：`mset k1 v1 k2 v2`，`mget k1 k2`，`msetnx k1 v1 k2 v2` 注意，msetnx如果有一条不成功，全部不成功
+- getset(先get再set)
 
-`Incr/decr/incrby/decrby`,一定要是数字才能进行加减
+## 3.3 List
 
-getrange/setrange 字符串截取或重新设置值，用法：`getrange k1 0 1`，`setrange k1 0 xxx`
+性质：单值多value
 
-mset/mget/msetnx
+**基本命令：**
 
- getset(先get再set)
- setex(set with expire)键秒值/setnx(set if not exist)
+- lpush/rpush/lrange 用法：`lpush list01 1 2 3 4 5` ，将值存入list01；lrange可以从list01中取值，`lrange list01 0 -1`；`rpush list02 1 2 3 4 5` 与lpush的区别，lpush像栈，rpush像队列
+- lindex，按照索引下标获得元素(从上到下)，用法：`lindex list01 1`
+- lpop/rpop 推出顶部元素，lpop以索引小的为顶，rpop以索引大的为顶
+- llen 获取元素的长度
+- lrem key 删N个value，用法：`lrem list03 2 3` 删除list03中的两个3
+- ltrim key 开始index 结束index，截取指定范围的值后再赋值给key，用法：`ltrim list01 0 -1` ，截取list01中的内容后再赋值给list01
+- rpoplpush 源列表 目的列表，将源屁股处的元素压到目的的头处
+- linsert key  before/after 值1 值2，将某个值插入key的前或后
+- lset key index value 在指定位置插入值
 
-​	
-​	
-​	 getrange/setrange
-	 setex(set with expire)键秒值/setnx(set if not exist)
-	 mset/mget/msetnx
-	 getset(先get再set)
+**总结：**
 
-Incr/decr/incrby/decrby,一定要是数字才能进行加减
- set/get/del/append/strlen
+> 它是一个字符串链表，left、right都可以插入添加；
+> 如果键不存在，创建新的链表；
+> 如果键已存在，新增内容；
+> 如果值全移除，对应的键也就消失了。
+> 链表的操作无论是头和尾效率都极高，但假如是对中间元素进行操作，效率就很惨淡了。
+
+## 3.4 Set
+
+性质：单值多value
+
+**基本命令：**
+
+- sadd/smembers/sismember：`sadd set01 1 1 2 2 3 4`，向set01中存值；`smembers set01 ` 列出set01中所有的数据；`sismember x` 判断 `member` 元素是否集合 `key` 的成员 
+- srandmember key 某个整数(随机出几个数) `srandmember set01 3`
+- spop key 随机出栈，`spop set01`
+- scard，获取集合里面的元素个数
+- srem key value 删除集合中元素
+- smove key1 key2 在key1里某个值   作用是将key1里的某个值赋给key2
+- 数学集合类
+  - 差集：sdiff，在第一个set中，不在后面任何一个set中 `sdiff  set01 set02`
+  - 交集：sinter
+  - 并集：sunion
+
+## 3.5 Hash
+
+重要！很重要！非常重要！
+
+性质：KV模式不变，但V是一个键值对
+
+- **hset/hget/hmset/hmget/hgetall/hdel**
+- hexists key 在key里面的某个值的key
+- hincrby/hincrbyfloat 用法：`hincrby customer age 2`
+- hkeys/hvals 列出所有的key或value
+- hsetnx
+- hlen
+
+## 3.6 Zset(sorted set)
+
+在set基础上，加一个score值。
+之前set是`k1 v1 v2 v3`，
+现在zset是`k1 score1 v1 score2 v2`
+
+典型应用场景：游戏中的排名
+
+**基本命令：**
+
+- zadd/zrange
+  - withscores
+- zrevrangebyscore  key 结束score 开始score
+- zrevrange
+- zrangebyscore key 开始score 结束score  加 (   不包含
+  - limit 作用是返回限制 limit 开始下标步 多少步
+- zrem key 某score下对应的value值，作用是删除元素
+- zrevrank key values值，作用是逆序获得下标值
+- zcard/zcount key score区间/zrank key values值，作用是获得下标值/zscore key 对应值,获得分数
+
+# 4、配置文件redis.conf
+
+## 4.1 位置
+
+安装目录下redis.conf
+
+在linux下开发，默认配置文件先不要修改，要先备份
+
+## 4.2 units单位
+
+对Redis来说，k与kb不同
+
+> 1k => 1000 bytes
+> 1kb => 1024 bytes
+> 1m => 1000000 bytes
+> 1mb => 1024*1024 bytes
+> 1g => 1000000000 bytes
+> 1gb => 102410241024 bytes
+> units are case insensitive so 1GB 1Gb 1gB are all the same.
+
