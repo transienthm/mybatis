@@ -375,3 +375,457 @@ epoll是Linux内核为处理大批量文件描述符而作了改进的epoll，�
 > 1gb => 102410241024 bytes
 > units are case insensitive so 1GB 1Gb 1gB are all the same.
 
+## 4.3 INCLUDES包含
+
+可以通过includes包含，使redis.conf作为总闸，包含其他配置文件
+
+## 4.4 GENERAL通用
+
+- daemonize 是否后台运行
+
+- pidfile 存放pid的文件
+
+- port
+
+- tcp-backlog
+
+  设置tcp的backlog，backlog其实是一个连接队列，backlog队列总和=未完成三次握手队列 + 已经完成三次握手队列。
+  在高并发环境下你需要一个高backlog值来避免慢客户端连接问题。注意Linux内核会将这个值减小到/proc/sys/net/core/somaxconn的值，所以需要确认增大somaxconn和tcp_max_syn_backlog两个值，来达到想要的效果
+
+- timeout 超时时间
+
+- bind 端口的绑定
+
+- tcp-keepalive ：单位为秒，如果设置为0，则不会进行Keepalive检测，建议设置成60 
+
+- loglevel  日志级别，类比log4j
+
+  > Specify the server verbosity level.
+  >
+  > This can be one of:
+  >
+  > debug (a lot of information, useful for development/testing)
+  >
+  > verbose (many rarely useful info, but not a mess like the debug level)
+  >
+  > notice (moderately verbose, what you want in production probably)
+  >
+  > warning (only very important / critical messages are logged)
+
+- logfile 日志文件位置
+
+- syslog-enabled 是否把日志输出到syslog中，默认关
+
+- syslog-ident 指定syslog里的日志标志
+
+- syslog-facility 指定syslog设备，值可以是USER或LOCAL0-LOCAL7
+
+- databases 默认有16个库
+
+## 4.5 SNAPSHOTTING快照
+
+## 4.6 REPLICATION复制
+
+## 4.7 SECURITY安全
+
+​	访问密码的查看、设置和取消
+
+## 4.8 LIMITS限制
+
+4.0.9版本分为CLIENTS和MEMORY MANAGEMENT等配置
+
+- maxmemory
+
+- maxclients
+
+- maxmemory-policy
+
+  缓存过期策略：
+
+  - volatile-lru -> remove the key with an expire set using an LRU algorithm
+  - allkeys-lru -> remove any key according to the LRU algorithm（最近最少使用算法）
+  - volatile-random -> remove a random key with an expire set
+  - allkeys-random -> remove a random key, any key
+  - volatile-ttl -> remove the key with the nearest expire time (minor TTL)
+  - noeviction -> don't expire at all, just return an error on write operations
+
+- maxmemory-samples
+
+  设置样本数量，LRU算法和最小TTL算法都并非是精确的算法，而是估算值，所以你可以设置样本的大小，redis默认会检查这么多个key并选择其中LRU的那个
+
+## 4.9 总结：常见配置redis.conf介绍
+
+参数说明
+redis.conf 配置项说明如下：
+
+1. Redis默认不是以守护进程的方式运行，可以通过该配置项修改，使用yes启用守护进程
+    daemonize no
+2. 当Redis以守护进程方式运行时，Redis默认会把pid写入/var/run/redis.pid文件，可以通过pidfile指定
+    pidfile /var/run/redis.pid
+3. 指定Redis监听端口，默认端口为6379，作者在自己的一篇博文中解释了为什么选用6379作为默认端口，因为6379在手机按键上MERZ对应的号码，而MERZ取自意大利歌女Alessia Merz的名字
+    port 6379
+4. 绑定的主机地址
+    bind 127.0.0.1
+5. 当客户端闲置多长时间后关闭连接，如果指定为0，表示关闭该功能
+      timeout 300
+6. 指定日志记录级别，Redis总共支持四个级别：debug、verbose、notice、warning，默认为verbose
+    loglevel verbose
+7. 日志记录方式，默认为标准输出，如果配置Redis为守护进程方式运行，而这里又配置为日志记录方式为标准输出，则日志将会发送给/dev/null
+    logfile stdout
+8. 设置数据库的数量，默认数据库为0，可以使用SELECT <dbid>命令在连接上指定数据库id
+    databases 16
+9. 指定在多长时间内，有多少次更新操作，就将数据同步到数据文件，可以多个条件配合
+    save <seconds> <changes>
+    Redis默认配置文件中提供了三个条件：
+    save 900 1
+    save 300 10
+    save 60 10000
+    分别表示900秒（15分钟）内有1个更改，300秒（5分钟）内有10个更改以及60秒内有10000个更改。
+10. 指定存储至本地数据库时是否压缩数据，默认为yes，Redis采用LZF压缩，如果为了节省CPU时间，可以关闭该选项，但会导致数据库文件变的巨大
+   rdbcompression yes
+11. 指定本地数据库文件名，默认值为dump.rdb
+    dbfilename dump.rdb
+12. 指定本地数据库存放目录
+    dir ./
+13. 设置当本机为slav服务时，设置master服务的IP地址及端口，在Redis启动时，它会自动从master进行数据同步
+    slaveof <masterip> <masterport>
+14. 当master服务设置了密码保护时，slav服务连接master的密码
+    masterauth <master-password>
+15. 设置Redis连接密码，如果配置了连接密码，客户端在连接Redis时需要通过AUTH <password>命令提供密码，默认关闭
+    requirepass foobared
+16. 设置同一时间最大客户端连接数，默认无限制，Redis可以同时打开的客户端连接数为Redis进程可以打开的最大文件描述符数，如果设置 maxclients 0，表示不作限制。当客户端连接数到达限制时，Redis会关闭新的连接并向客户端返回max number of clients reached错误信息
+    maxclients 128
+17. 指定Redis最大内存限制，Redis在启动时会把数据加载到内存中，达到最大内存后，Redis会先尝试清除已到期或即将到期的Key，当此方法处理 后，仍然到达最大内存设置，将无法再进行写入操作，但仍然可以进行读取操作。Redis新的vm机制，会把Key存放内存，Value会存放在swap区
+    maxmemory <bytes>
+18. 指定是否在每次更新操作后进行日志记录，Redis在默认情况下是异步的把数据写入磁盘，如果不开启，可能会在断电时导致一段时间内的数据丢失。因为 redis本身同步数据文件是按上面save条件来同步的，所以有的数据会在一段时间内只存在于内存中。默认为no
+    appendonly no
+19. 指定更新日志文件名，默认为appendonly.aof
+     appendfilename appendonly.aof
+20. 指定更新日志条件，共有3个可选值： 
+    no：表示等操作系统进行数据缓存同步到磁盘（快） 
+    always：表示每次更新操作后手动调用fsync()将数据写到磁盘（慢，安全） 
+    everysec：表示每秒同步一次（折衷，默认值）
+    appendfsync everysec
+21. 指定是否启用虚拟内存机制，默认值为no，简单的介绍一下，VM机制将数据分页存放，由Redis将访问量较少的页即冷数据swap到磁盘上，访问多的页面由磁盘自动换出到内存中（在后面的文章我会仔细分析Redis的VM机制）
+     vm-enabled no
+22. 虚拟内存文件路径，默认值为/tmp/redis.swap，不可多个Redis实例共享
+     vm-swap-file /tmp/redis.swap
+23. 将所有大于vm-max-memory的数据存入虚拟内存,无论vm-max-memory设置多小,所有索引数据都是内存存储的(Redis的索引数据 就是keys),也就是说,当vm-max-memory设置为0的时候,其实是所有value都存在于磁盘。默认值为0
+     vm-max-memory 0
+24. Redis swap文件分成了很多的page，一个对象可以保存在多个page上面，但一个page上不能被多个对象共享，vm-page-size是要根据存储的 数据大小来设定的，作者建议如果存储很多小对象，page大小最好设置为32或者64bytes；如果存储很大大对象，则可以使用更大的page，如果不 确定，就使用默认值
+     vm-page-size 32
+25. 设置swap文件中的page数量，由于页表（一种表示页面空闲或使用的bitmap）是在放在内存中的，，在磁盘上每8个pages将消耗1byte的内存。
+     vm-pages 134217728
+26. 设置访问swap文件的线程数,最好不要超过机器的核数,如果设置为0,那么所有对swap文件的操作都是串行的，可能会造成比较长时间的延迟。默认值为4
+     vm-max-threads 4
+27. 设置在向客户端应答时，是否把较小的包合并为一个包发送，默认为开启
+    glueoutputbuf yes
+28. 指定在超过一定的数量或者最大的元素超过某一临界值时，采用一种特殊的哈希算法
+    hash-max-zipmap-entries 64
+    hash-max-zipmap-value 512
+29. 指定是否激活重置哈希，默认为开启（后面在介绍Redis的哈希算法时具体介绍）
+    activerehashing yes
+30. 指定包含其它的配置文件，可以在同一主机上多个Redis实例之间使用同一份配置文件，而同时各个实例又拥有自己的特定配置文件
+    include /path/to/local.conf
+
+# 5、Redis持久化
+
+## 5.1 RDB(Redis DataBase)
+
+### 5.1.1 RDB是什么？
+
+在指定的时间间隔内将内存中的数据集快照写入磁盘，也就是行话讲的Snapshot快照，它恢复时是将快照文件直接读到内存里
+
+Redis会单独创建（fork）一个子进程来进行持久化，会先将数据写入到一个临时文件中，待持久化过程都结束了，再用这个临时文件替换上次持久化好的文件。
+整个过程中，主进程是不进行任何IO操作的，这就确保了极高的性能。如果需要进行大规模数据的恢复，且对于数据恢复的完整性不是非常敏感，那RDB方式要比AOF方式更加的高效。
+
+RDB的**缺点**是最后一次持久化后的数据可能丢失。对数据精度要求不高时首推RDB。
+
+### 5.1.2 Fork
+
+fork的作用是复制一个与当前进程一样的进程。新进程的所有数据（变量、环境变量、程序计数器等）数值都和原进程一致，但是是一个全新的进程，并作为原进程的子进程。fork的过程在内存空间紧张时存在隐患。
+
+**快照策略**
+
+> In the example below the behaviour will be to save:
+>
+> after 900 sec (15 min) if at least 1 key changed
+>
+> after 300 sec (5 min) if at least 10 keys changed
+>
+> after 60 sec if at least 10000 keys changed
+
+符合快照策略时，redis会保存快照文件，rdb保存的是dump.rdb文件，可以通过dbfilename进行配置。
+
+### 5.1.3 配置文件中默认的快照配置
+
+- save
+
+  RDB是整个内存的压缩过的Snapshot，RDB的数据结构，可以配置复合的快照触发条件，
+  默认：
+  是1分钟内改了1万次，
+  或5分钟内改了10次，
+  或15分钟内改了1次。
+
+  禁用：
+
+  如果想禁用RDB持久化的策略，只要不设置任何save指令，或者给save传入一个空字符串参数也可以
+
+  save命令可以立刻备份
+
+- stop-writes-on-bgsave-error
+
+  如果配置成no，表示你不在乎数据不一致或者有其他的手段发现和控制
+
+- rdbcompression
+
+  对于存储到磁盘中的快照，可以设置是否进行压缩存储。如果是的话，redis会采用LZF算法进行压缩。如果你不想消耗CPU来进行压缩的话，可以设置为关闭此功能。
+
+- rdbchecksum：
+
+  在存储快照后，还可以让redis使用CRC64算法来进行数据校验，但是这样做会增加大约
+  10%的性能消耗，如果希望获取到最大的性能提升，可以关闭此功能
+
+- dbfilename 配置rdb快照文件名
+
+- dir
+
+### 5.1.4如何触发RDB快照 
+
+命令save或者是bgsave
+
+- Save：save时只管保存，其它不管，全部阻塞
+- BGSAVE：Redis会在后台异步进行快照操作，
+- 执行flushall命令，也会产生dump.rdb文件，但里面是空的，无意义
+
+### 5.1.5 如何恢复
+
+- 将备份文件 (dump.rdb) 移动到 redis 安装目录并启动服务即可
+- CONFIG GET dir获取目录
+
+### 5.1.6 优势
+
+- 适合大规模的数据恢复
+- 对数据完整性和一致性要求不高
+
+### 5.1.7 劣势
+
+- 在一定间隔时间做一次备份，所以如果redis意外down掉的话，就会丢失最后一次快照后的所有修改
+
+- fork的时候，内存中的数据被克隆了一份，大致2倍的膨胀性需要考虑
+
+### 5.1.8 如何停止
+
+动态所有停止RDB保存规则的方法：`redis-cli config set save ""`
+
+## 5.2 AOF（Append Only File）
+
+### 5.2.1 是什么？
+
+以**日志的形式**来记录每个写操作，将Redis执行过的所有**写指令**记录下来(读操作不记录)，
+只许追加文件但不可以改写文件，redis启动之初会读取该文件重新构建数据，换言之，Redis
+重启的话就根据日志文件的内容将写指令从前到后执行一次以完成数据的恢复工作
+
+Aof保存的是appendonly.aof文件
+
+### 5.2.2 配置位置APPEND ONLY MODE追加
+
+- appendonly
+
+  默认no
+
+- appendfilename
+
+  appendonly.aof
+
+- appendfsync 同步策略
+
+  - always：同步持久化 每次发生数据变更会被立即记录到磁盘  性能较差但数据完整性比较好
+  - everysec：出厂默认推荐，异步操作，每秒记录   如果一秒内宕机，有数据丢失
+  - no
+
+- no-appendfsync-on-rewrite：重写时是否可以运用Appendfsync，用默认no即可，保证数据安全性。
+
+- auto-aof-rewrite-percentage：设置重写的基准值
+
+- auto-aof-rewrite-min-size：设置重写最小日志大小
+
+### 5.2.3 启动、修复、恢复 
+
+- 正常恢复
+
+  - 启动：设置Yes
+
+  ​	修改默认的appendonly no，改为yes
+
+  - 将有数据的aof文件复制一份保存到对应目录(config get dir)
+  - 恢复：重启redis然后重新加载
+
+- 异常恢复
+
+  - 启动：设置Yes
+
+  ​	修改默认的appendonly no，改为yes
+
+  - 备份被写坏的AOF文件
+  - 修复：
+
+  ​	redis-check-aof --fix进行修复
+
+  - 恢复：重启redis然后重新加载
+
+### 5.2.4 rewrite
+
+#### 是什么？
+
+AOF采用文件追加方式，文件会越来越大为避免出现此种情况，新增了重写机制，当AOF文件的大小超过所设定的阈值时，Redis就会启动AOF文件的内容压缩，只保留可以恢复数据的最小指令集.可以使用命令bgrewriteaof
+
+#### 重写原理
+
+AOF文件持续增长而过大时，会fork出一条新进程来将文件重写(也是先写临时文件最后再rename)，遍历新进程的内存中数据，每条记录有一条的Set语句。重写aof文件的操作，并没有读取旧的aof文件，而是将整个内存中的数据库内容用命令的方式重写了一个新的aof文件，这点和快照有点类似
+
+#### 触发机制
+
+Redis会记录上次重写时的AOF大小，默认配置是当AOF文件大小是上次rewrite后大小的一倍且文件大于64M时触发
+
+### 5.2.5 优势
+
+- 每修改同步：appendfsync always   同步持久化 每次发生数据变更会被立即记录到磁盘  性能较差但数据完整性比较好
+- 每秒同步：appendfsync everysec    异步操作，每秒记录   如果一秒内宕机，有数据丢失
+- 不同步：appendfsync no   从不同步
+
+### 5.2.6 劣势
+
+- 相同数据集的数据而言aof文件要远大于rdb文件，恢复速度慢于rdb
+- aof运行效率要慢于rdb,每秒同步策略效率较好，不同步效率和rdb相同
+
+## 5.3 Which one？
+
+- RDB持久化方式能够在指定的时间间隔能对你的数据进行快照存储
+- AOF持久化方式记录每次对服务器写的操作,当服务器重启的时候会重新执行这些命令来恢复原始的数据，AOF命令以redis协议追加保存每次写的操作到文件末尾。Redis还能对AOF文件进行后台重写，使得AOF文件的体积不至于过大
+- 只做缓存：如果你只希望你的数据在服务器运行的时候存在,你也可以不使用任何持久化方式.
+- 同时开启两种持久化方式
+  - 在这种情况下,当redis重启的时候会优先载入AOF文件来恢复原始的数据,因为在通常情况下AOF文件保存的数据集要比RDB文件保存的数据集要完整.
+  - RDB的数据不实时，同时使用两者时服务器重启也只会找AOF文件。那要不要只使用AOF呢？作者建议不要，因为RDB更适合用于备份数据库(AOF在不断变化不好备份)，
+    快速重启，而且不会有AOF可能潜在的bug，留着作为一个万一的手段。
+
+## 5.4 性能建议
+
+因为RDB文件只用作后备用途，建议只在Slave上持久化RDB文件，而且只要15分钟备份一次就够了，只保留**`save 900 1`**这条规则。
+
+
+如果Enalbe AOF，好处是在最恶劣情况下也只会丢失不超过两秒数据，启动脚本较简单只load自己的AOF文件就可以了。代价一是带来了持续的IO，二是AOF rewrite的最后将rewrite过程中产生的新数据写到新文件造成的阻塞几乎是不可避免的。只要硬盘许可，应该尽量减少AOF rewrite的频率，AOF重写的**基础大小默认值64M太小**了，可以设到5G以上。默认超过原大小100%大小时重写可以改到适当的数值。
+
+如果不Enable AOF ，仅靠Master-Slave Replication 实现高可用性也可以。能省掉一大笔IO也减少了rewrite时带来的系统波动。代价是如果Master/Slave同时倒掉，会丢失十几分钟的数据，启动脚本也要比较两个Master/Slave中的RDB文件，载入较新的那个。新浪微博就选用了这种架构.
+
+# 6、 事务
+
+## 6.1 是什么？能做什么？
+
+**是什么**
+
+可以一次执行多个命令，本质是一组命令的集合。一个事务中的所有命令都会序列化，**按顺序地串行化执行而不会被其它命令插入**，不许加塞。
+
+**能做什么**
+
+一个队列中，一次性、顺序性、排他性的执行一系列命令
+
+## 6.2 怎么玩
+
+### 6.2.1 常用命令
+
+![redis](https://user-images.githubusercontent.com/16509581/41401404-58fb8e94-6ff2-11e8-846e-9339fc6b2093.jpg)
+
+### 6.2.2 不同case
+
+- Case1 正常执行
+
+![image](https://user-images.githubusercontent.com/16509581/41401455-80882e68-6ff2-11e8-898a-3c2527683faa.png)
+
+- Case2 放弃执行
+
+![image](https://user-images.githubusercontent.com/16509581/41401518-a6350d84-6ff2-11e8-862d-ff4c7455477f.png)
+
+- Case3 全体连坐
+
+  ![image](https://user-images.githubusercontent.com/16509581/41401673-046a9f86-6ff3-11e8-96f6-dcbdab4c8c61.png)
+
+  在执行过程中就报错，会连坐
+
+- Case4 冤头债主
+
+![image](https://user-images.githubusercontent.com/16509581/41401721-215a87c8-6ff3-11e8-983a-808797f4f85e.png)
+
+​	执行过程中没有报错，冤有头债有主
+
+### 6.2.3 Case5 watch监控
+
+#### 悲观锁、乐观锁、CAS
+
+- 悲观锁
+
+  悲观锁(Pessimistic Lock), 顾名思义，就是很悲观，每次去拿数据的时候都认为别人会修改，所以每次在拿数据的时候都会上锁，这样别人想拿这个数据就会block直到它拿到锁。传统的关系型数据库里边就用到了很多这种锁机制，比如行锁，表锁等，读锁，写锁等，都是在做操作之前先上锁
+
+  特点：并发性差、一致性好
+
+- 乐观锁
+
+  乐观锁(Optimistic Lock), 顾名思义，就是很乐观，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，**可以使用版本号等机制**。乐观锁**适用于多读**的应用类型，这样可以提高吞吐量
+
+  乐观锁策略:<u>提交版本必须大于记录当前版本才能执行更新</u>
+
+#### 监控过程
+
+初始化信用卡可用余额和欠额
+
+![image](https://user-images.githubusercontent.com/16509581/41402890-0d8e10d6-6ff6-11e8-8fdf-9ddd560f6bac.png)
+
+无加塞篡改，先监控再开启multi， 保证两笔金额变动在同一个事务内
+
+![image](https://user-images.githubusercontent.com/16509581/41402993-53c9f646-6ff6-11e8-937c-a50f0a5bff47.png)
+
+有加塞篡改
+
+![image](https://user-images.githubusercontent.com/16509581/41403083-93e3d3d2-6ff6-11e8-9866-6fc11e2071b2.png)
+
+监控了key，如果key被修改了，后面一个事务的执行失效。此时需要**unwatch**，重新从缓存中读取数据
+
+![image](https://user-images.githubusercontent.com/16509581/41403197-e8573ada-6ff6-11e8-8e58-03401b4e8736.png)
+
+一旦执行了exec之前加的监控锁都会被取消掉了
+
+## 6.3 小结
+
+Watch指令，类似**乐观锁**，事务提交时，如果Key的值已被别的客户端改变，比如某个list已被别的客户端push/pop过了，整个事务队列都不会被执行
+
+通过WATCH命令在事务执行之前监控了多个Keys，倘若在WATCH之后有任何Key的值发生了变化，EXEC命令执行的事务都将被放弃，同时返回Nullmulti-bulk应答以通知调用者事务执行失败
+
+![image](https://user-images.githubusercontent.com/16509581/41403453-7d9a4dbc-6ff7-11e8-953a-7e5d76b68003.png)
+
+![1528968233674](C:\Users\cab\AppData\Local\Temp\1528968233674.png)
+
+# 7、消息订阅发布
+
+redis的消息中间件功能
+
+进程间的一种消息通信模式：发送者(pub)发送消息，订阅者(sub)接收消息。
+
+
+
+## 订阅、发布消息图
+
+![1528968352943](C:\Users\cab\AppData\Local\Temp\1528968352943.png)
+
+## 基本命令
+
+![image](https://user-images.githubusercontent.com/16509581/41403655-fa57d82e-6ff7-11e8-8848-2e7087bb0388.png)
+
+## 案例
+
+先订阅后发布后才能收到消息，
+1 可以一次性订阅多个，SUBSCRIBE c1 c2 c3
+
+2 消息发布，PUBLISH c2 hello-redis
+
+3 订阅多个，通配符*， PSUBSCRIBE new*
+4 收取消息， PUBLISH new1 redis2015
